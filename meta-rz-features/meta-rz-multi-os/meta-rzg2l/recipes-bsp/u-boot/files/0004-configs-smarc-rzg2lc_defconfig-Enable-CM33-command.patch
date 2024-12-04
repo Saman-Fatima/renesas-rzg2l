@@ -1,0 +1,21 @@
+From 3730dfdf226e815754d631652f23f3f32d90d1c4 Mon Sep 17 00:00:00 2001
+From: Trung Le <trung.le.uj@renesas.com>
+Date: Wed, 13 Mar 2024 17:18:05 +0700
+Subject: [PATCH 4/5] configs: smarc-rzg2lc_defconfig: Enable CM33 command
+
+---
+ configs/smarc-rzg2lc_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/configs/smarc-rzg2lc_defconfig b/configs/smarc-rzg2lc_defconfig
+index 1607a36e1a..e3c61e9734 100644
+--- a/configs/smarc-rzg2lc_defconfig
++++ b/configs/smarc-rzg2lc_defconfig
+@@ -95,3 +95,4 @@ CONFIG_USB_RENESAS_USBHS=y
+ CONFIG_USB_GADGET_DOWNLOAD=y
+ CONFIG_USB_FUNCTION_MASS_STORAGE=y
+ CONFIG_CMD_USB_MASS_STORAGE=y
++CONFIG_CMD_CM33=y
+-- 
+2.25.1
+

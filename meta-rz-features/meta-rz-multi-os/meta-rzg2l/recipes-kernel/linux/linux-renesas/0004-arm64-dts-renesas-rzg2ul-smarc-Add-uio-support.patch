@@ -1,0 +1,69 @@
+From bbf3857555c658b2c52072ea8a93b07cfbec382f Mon Sep 17 00:00:00 2001
+From: Trung Le <trung.le.uj@renesas.com>
+Date: Fri, 7 Apr 2023 10:28:49 +0700
+Subject: [PATCH 4/8] arm64: dts: renesas: rzg2ul-smarc: Add uio support for
+ inter processor communication
+
+Signed-off-by: Trung Le <trung.le.uj@renesas.com>
+---
+ .../boot/dts/renesas/rzg2ul-smarc-som.dtsi    | 44 +++++++++++++++++++
+ 1 file changed, 44 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/renesas/rzg2ul-smarc-som.dtsi b/arch/arm64/boot/dts/renesas/rzg2ul-smarc-som.dtsi
+index a1f03f062..d292d0408 100644
+--- a/arch/arm64/boot/dts/renesas/rzg2ul-smarc-som.dtsi
++++ b/arch/arm64/boot/dts/renesas/rzg2ul-smarc-som.dtsi
+@@ -19,6 +19,50 @@ chosen {
+ 		bootargs = "ignore_loglevel rw root=/dev/nfs ip=on";
+ 	};
+ 
++        vring-ctl0@43000000 {
++                compatible = "vring_uio";
++                reg = <0x0 0x43000000 0x0 0x100000>;
++                no-map;
++        };
++
++        vring-ctl1@43100000 {
++                compatible = "vring_uio";
++                reg = <0x0 0x43100000 0x0 0x100000>;
++                no-map;
++        };
++
++        vring-shm0@43200000 {
++                compatible = "shm_uio";
++                reg = <0x0 0x43200000 0x0 0x300000>;
++                no-map;
++        };
++
++        vring-shm1@43500000 {
++                compatible = "shm_uio";
++                reg = <0x0 0x43500000 0x0 0x300000>;
++                no-map;
++        };
++
++        rsctbl@42f00000 {
++                compatible = "shm_uio";
++                reg = <0x0 0x42f00000 0x0 0x1000>;
++                no-map;
++        };
++
++        mhu-shm@42f01000 {
++                compatible = "shm_uio";
++                reg = <0x0 0x42f01000 0x0 0x1000>;
++                no-map;
++        };
++
++        mbox-uio@10400000 {
++                compatible = "mbox_uio";
++                reg = <0x0 0x10400000 0x0 0x1000>;
++                interrupt-parent = <&gic>;
++                interrupts = <GIC_SPI 75 IRQ_TYPE_LEVEL_HIGH>;
++                status = "okay";
++        };
++
+ 	memory@48000000 {
+ 		device_type = "memory";
+ 		/* first 128MB is reserved for secure area. */
+-- 
+2.25.1
+

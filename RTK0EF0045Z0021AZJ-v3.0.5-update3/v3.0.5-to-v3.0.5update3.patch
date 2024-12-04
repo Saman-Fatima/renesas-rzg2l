@@ -1,0 +1,1242 @@
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/README.md v3.0.5update3/meta-renesas/README.md
+--- v3.0.5/meta-renesas/README.md	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/README.md	2024-01-30 10:26:01.169334428 +0900
+@@ -101,6 +101,7 @@
+ |3.0.3|1.1.0|1.0.5(\*1)|
+ |3.0.4|1.1.0|1.1.0(\*1)|
+ |3.0.5|1.1.0|1.1.0|
++|3.0.5-update2|1.2.0|1.2.0|
+ 
+ (\*1) Please note that the naming rule of version is changed from the release.
+ v1.0.5 is newer version of v1.4.
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/docs/template/conf/local.rzfive.conf v3.0.5update3/meta-renesas/docs/template/conf/local.rzfive.conf
+--- v3.0.5/meta-renesas/docs/template/conf/local.rzfive.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/docs/template/conf/local.rzfive.conf	2024-01-30 13:49:59.660128918 +0900
+@@ -261,17 +261,21 @@
+ INCOMPATIBLE_LICENSE = "GPLv3 GPLv3+"
+ 
+ # Generate compressed "git2_" gz of all git packages in DL_DIR
+-#BB_GENERATE_MIRROR_TARBALLS = "1"
++BB_GENERATE_MIRROR_TARBALLS = "1"
+ 
+ # Generate compressed "gitshallow_" gz of all git packages in DL_DIR
+-#BB_GENERATE_SHALLOW_TARBALLS = "1"
++BB_GENERATE_SHALLOW_TARBALLS = "1"
+ 
+ # Use "gitshallow_" instead of normal git files in DL_DIR
+-#BB_GIT_SHALLOW = "1"
+-#BB_GIT_SHALLOW_DEPTH = "1"
++BB_GIT_SHALLOW = "1"
++BB_GIT_SHALLOW_DEPTH = "1"
+ 
+ # Remove dnf package which causes high CPU workload
+ PACKAGE_INSTALL_remove = " dnf "
+ 
+ # Comment out a following line to enable the Docker Engine.
+ DISTRO_FEATURES_remove = " docker"
++
++DL_DIR = "${TOPDIR}/downloads"
++BB_NO_NETWORK = "0"
++
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/dynamic-layers/qt5-layer/qt5/qtmultimedia/0013-qtmultimedia-fix-blank-video-output-for-g2l.patch v3.0.5update3/meta-renesas/meta-rz-common/dynamic-layers/qt5-layer/qt5/qtmultimedia/0013-qtmultimedia-fix-blank-video-output-for-g2l.patch
+--- v3.0.5/meta-renesas/meta-rz-common/dynamic-layers/qt5-layer/qt5/qtmultimedia/0013-qtmultimedia-fix-blank-video-output-for-g2l.patch	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/dynamic-layers/qt5-layer/qt5/qtmultimedia/0013-qtmultimedia-fix-blank-video-output-for-g2l.patch	2024-01-30 10:26:01.337335578 +0900
+@@ -0,0 +1,54 @@
++From 9dba9860859b3066a6838053e20c3c131ce631f8 Mon Sep 17 00:00:00 2001
++From: Duy Truong <duy.truong.yw@renesas.com>
++Date: Thu, 28 Sep 2023 10:37:18 +0700
++Subject: [PATCH] qtmultimedia: Fix blank video output for G2L on qmlvideo
++
++In G2L's Mali graphic, when using glEGLImageTargetTexture2DOES(), GLES 
++require GL_TEXTURE_EXTERNAL_OES to be used as the texturing mode, if used 
++GL_TEXTURE_2D the output video will be blank.
++
++Signed-off-by: Duy Truong <duy.truong.yw@renesas.com>
++---
++ src/qtmultimediaquicktools/qsgvideonode_yuv.cpp          | 12 ++++++------
++ src/qtmultimediaquicktools/shaders/biplanaryuvvideo.frag |  5 +++--
++ 2 files changed, 9 insertions(+), 8 deletions(-)
++
++diff --git a/src/qtmultimediaquicktools/qsgvideonode_yuv.cpp b/src/qtmultimediaquicktools/qsgvideonode_yuv.cpp
++index 7e361a6..02eca4f 100644
++--- a/src/qtmultimediaquicktools/qsgvideonode_yuv.cpp
+++++ b/src/qtmultimediaquicktools/qsgvideonode_yuv.cpp
++@@ -447,12 +447,12 @@ void QSGVideoMaterial_YUV::bind()
++                        eglimage_used = 1;
++                        eglimage_arr = set_current_eglimage(eglimage_arr);
++                        functions->glActiveTexture(GL_TEXTURE0);
++-                       functions->glBindTexture(GL_TEXTURE_2D, m_textureIds[0]);
++-                       glEGLImageTargetTexture2D(GL_TEXTURE_2D, eglimage);
++-                       functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
++-                       functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
++-                       functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
++-                       functions->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+++                       functions->glBindTexture(GL_TEXTURE_EXTERNAL_OES, m_textureIds[0]);
+++                       glEGLImageTargetTexture2D(GL_TEXTURE_EXTERNAL_OES, eglimage);
+++                       functions->glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+++                       functions->glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+++                       functions->glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+++                       functions->glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
++                 } else {
++ #endif
++                 eglimage_used = 0;
++diff --git a/src/qtmultimediaquicktools/shaders/biplanaryuvvideo.frag b/src/qtmultimediaquicktools/shaders/biplanaryuvvideo.frag
++index f7739a2..71621c8 100644
++--- a/src/qtmultimediaquicktools/shaders/biplanaryuvvideo.frag
+++++ b/src/qtmultimediaquicktools/shaders/biplanaryuvvideo.frag
++@@ -1,5 +1,6 @@
++-uniform sampler2D plane1Texture;
++-uniform sampler2D plane2Texture;
+++#extension GL_OES_EGL_image_external : require
+++uniform samplerExternalOES plane1Texture;
+++uniform samplerExternalOES plane2Texture;
++ uniform mediump mat4 colorMatrix;
++ uniform lowp float opacity;
++ uniform lowp float eglimage;
++-- 
++2.17.1
++
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/dynamic-layers/qt5-layer/qt5/qtmultimedia_git.bbappend v3.0.5update3/meta-renesas/meta-rz-common/dynamic-layers/qt5-layer/qt5/qtmultimedia_git.bbappend
+--- v3.0.5/meta-renesas/meta-rz-common/dynamic-layers/qt5-layer/qt5/qtmultimedia_git.bbappend	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/dynamic-layers/qt5-layer/qt5/qtmultimedia_git.bbappend	2024-01-30 10:26:01.333335551 +0900
+@@ -24,6 +24,10 @@
+ 	file://0012-plugins-alsa-Add-default-key-for-alsa-plugin.patch \
+ "
+ 
++SRC_URI_append_rzg2l = " \
++        file://0013-qtmultimedia-fix-blank-video-output-for-g2l.patch \
++"
++
+ PACKAGECONFIG_append = " gstreamer alsa"
+ 
+ FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/include/core-image-renesas-base.inc v3.0.5update3/meta-renesas/meta-rz-common/include/core-image-renesas-base.inc
+--- v3.0.5/meta-renesas/meta-rz-common/include/core-image-renesas-base.inc	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/include/core-image-renesas-base.inc	2024-01-30 10:26:01.337335578 +0900
+@@ -11,7 +11,7 @@
+ 
+ update_issue() {
+     # Set BSP version
+-    BSP_VERSION="3.0.5"
++    BSP_VERSION="3.0.5-update3"
+ 
+     # Set SoC and Board info
+     case "${MACHINE}" in
+@@ -166,7 +166,13 @@
+ export KERNELDIR="$SDKTARGETSYSROOT/usr/src/kernel"
+ export HOST_EXTRACFLAGS="-I${OECORE_NATIVE_SYSROOT}/usr/include/ -L${OECORE_NATIVE_SYSROOT}/usr/lib"
+ 
+-# WKS setup
+-WKS_DEFAULT_FILE ?= "rz-image-bootpart-mmc1.wks"
+-WKS_DEFAULT_FILE_ek874 ?= "rz-image-bootpart-mmc0.wks"
+-WKS_FILE = "${@oe.utils.conditional("WKS_SUPPORT", "1", "${WKS_DEFAULT_FILE}", "", d)}"
++# Default WKS is eMMC, except rzg2l devices which can support eSD boot
++WKS_DEFAULT_FILE = "rz-image-bootpart-mmc.wks"
++WKS_DEFAULT_FILE_rzg2l = "rz-image-bootpart-esd.wks"
++WKS_DEFAULT_FILE_smarc-rzg2l = "rz-image-bootpart-esd-pmic.wks"
++
++WKS_FILE ?= "${@oe.utils.conditional("WKS_SUPPORT", "1", "${WKS_DEFAULT_FILE}", "", d)}"
++
++# Force remake wic image if its inputs were changed (WIC_INPUT_DEPENDS are defined in each machine conf)
++# Note that environment variable WKS_FILE_DEPENDS can be used here, but it makes do_rootfs rerun as well
++do_image_wic[depends] += "${WIC_INPUT_DEPENDS}"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-bsp/trusted-firmware-a/trusted-firmware-a.bb v3.0.5update3/meta-renesas/meta-rz-common/recipes-bsp/trusted-firmware-a/trusted-firmware-a.bb
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-bsp/trusted-firmware-a/trusted-firmware-a.bb	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-bsp/trusted-firmware-a/trusted-firmware-a.bb	2024-01-30 10:26:01.337335578 +0900
+@@ -3,7 +3,6 @@
+ LICENSE = "BSD-3-Clause & MIT & Apache-2.0"
+ LIC_FILES_CHKSUM = " \
+ 	file://${WORKDIR}/git/docs/license.rst;md5=b2c740efedc159745b9b31f88ff03dde \
+-	file://${WORKDIR}/mbedtls/LICENSE;md5=3b83ef96387f14655fc854ddc3c6bd57 \
+ "
+ 
+ PACKAGE_ARCH = "${MACHINE_ARCH}"
+@@ -13,15 +12,12 @@
+ S = "${WORKDIR}/git"
+ 
+ BRANCH = "v2.9/rz"
+-BRANCH_mbedtls = "mbedtls-2.28"
+ 
+ SRC_URI = " \
+ 	git://github.com/renesas-rz/rzg_trusted-firmware-a.git;branch=${BRANCH};protocol=https \
+-	git://github.com/ARMmbed/mbedtls.git;branch=${BRANCH_mbedtls};name=mbedtls;destsuffix=mbedtls \
+ "
+ 
+-SRCREV = "c314a391cf3eaf904e3b7a2875af15cc8254dab5"
+-SRCREV_mbedtls = "dd79db10014d85b26d11fe57218431f2e5ede6f2"
++SRCREV = "cc18695622e5637ec70ee3ae8eb5e83b09d13804"
+ 
+ PV = "v2.9+git"
+ 
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-bsp/u-boot/u-boot_2021.10.bb v3.0.5update3/meta-renesas/meta-rz-common/recipes-bsp/u-boot/u-boot_2021.10.bb
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-bsp/u-boot/u-boot_2021.10.bb	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-bsp/u-boot/u-boot_2021.10.bb	2024-01-30 10:26:01.337335578 +0900
+@@ -7,5 +7,5 @@
+ BRANCH = "v2021.10/rz"
+ 
+ SRC_URI = "${UBOOT_URL};branch=${BRANCH}"
+-SRCREV = "7fcc1fdc253400f8b088ea10de30b865a32b957a"
++SRCREV = "fe9d08bec2006356760b70bb2f72ba2ba5aed5fd"
+ PV = "v2021.10+git${SRCPV}"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-debian/buster/sources/glib2.0.inc v3.0.5update3/meta-renesas/meta-rz-common/recipes-debian/buster/sources/glib2.0.inc
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-debian/buster/sources/glib2.0.inc	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-debian/buster/sources/glib2.0.inc	2024-01-30 10:26:01.349335660 +0900
+@@ -1,19 +1,19 @@
+ # This is generated by debian-source.bbclass
+-DPV = "2.58.3-2+deb10u4"
++DPV = "2.58.3-2+deb10u5"
+ DPV_EPOCH = ""
+ REPACK_PV = "2.58.3"
+ PV = "2.58.3"
+ 
+ DEBIAN_SRC_URI = " \
+-    ${DEBIAN_SECURITY_UPDATE_MIRROR}/main/g/glib2.0/glib2.0_2.58.3-2+deb10u4.dsc;name=glib2.0_2.58.3-2+deb10u4.dsc \
++    ${DEBIAN_SECURITY_UPDATE_MIRROR}/main/g/glib2.0/glib2.0_2.58.3-2+deb10u5.dsc;name=glib2.0_2.58.3-2+deb10u5.dsc \
+     ${DEBIAN_SECURITY_UPDATE_MIRROR}/main/g/glib2.0/glib2.0_2.58.3.orig.tar.xz;name=glib2.0_2.58.3.orig.tar.xz \
+-    ${DEBIAN_SECURITY_UPDATE_MIRROR}/main/g/glib2.0/glib2.0_2.58.3-2+deb10u4.debian.tar.xz;name=glib2.0_2.58.3-2+deb10u4.debian.tar.xz \
++    ${DEBIAN_SECURITY_UPDATE_MIRROR}/main/g/glib2.0/glib2.0_2.58.3-2+deb10u5.debian.tar.xz;name=glib2.0_2.58.3-2+deb10u5.debian.tar.xz \
+ "
+ 
+-SRC_URI[glib2.0_2.58.3-2+deb10u4.dsc.md5sum] = "78b940369a5ab3a395497cb88dabc18d"
++SRC_URI[glib2.0_2.58.3-2+deb10u5.dsc.md5sum] = "c9c7fe5ccab432f00a2e92c73620ea68"
+ SRC_URI[glib2.0_2.58.3.orig.tar.xz.md5sum] = "8058c7bde846dcffe5fa453eca366d73"
+-SRC_URI[glib2.0_2.58.3-2+deb10u4.debian.tar.xz.md5sum] = "2d384cdac5f483e3e80544505c1b4788"
++SRC_URI[glib2.0_2.58.3-2+deb10u5.debian.tar.xz.md5sum] = "e8ad6cbb292b5a3662ff4d03046c968c"
+ 
+-SRC_URI[glib2.0_2.58.3-2+deb10u4.dsc.sha256sum] = "8a2b7d98dd7f3e5ed4908d06d13b919989f1712e3a5e348be45e266fb72a2cb9"
++SRC_URI[glib2.0_2.58.3-2+deb10u5.dsc.sha256sum] = "59c25e933d20f4f711c4b6685fbfeb46f1df344aa0e09c862b77fcaef94c57d3"
+ SRC_URI[glib2.0_2.58.3.orig.tar.xz.sha256sum] = "8f43c31767e88a25da72b52a40f3301fefc49a665b56dc10ee7cc9565cbe7481"
+-SRC_URI[glib2.0_2.58.3-2+deb10u4.debian.tar.xz.sha256sum] = "2a62cdccabd2bdcac1015913599cf04966895fadd76424790a687652f7e53277"
++SRC_URI[glib2.0_2.58.3-2+deb10u5.debian.tar.xz.sha256sum] = "5c9d1dc438c0a8923eaf65391e04906230d06a71426dc1aa6df785b12a4d21d4"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/files/COPYING.MIT v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/files/COPYING.MIT
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/files/COPYING.MIT	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/files/COPYING.MIT	1970-01-01 09:00:00.000000000 +0900
+@@ -1,19 +0,0 @@
+-Copyright (c) 2020 Renesas
+-
+-Permission is hereby granted, free of charge, to any person obtaining a copy
+-of this software and associated documentation files (the "Software"), to deal
+-in the Software without restriction, including without limitation the rights
+-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-copies of the Software, and to permit persons to whom the Software is
+-furnished to do so, subject to the following conditions:
+-
+-The above copyright notice and this permission notice shall be included in all
+-copies or substantial portions of the Software.
+-
+-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-SOFTWARE.
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/files/watchdog.service v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/files/watchdog.service
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/files/watchdog.service	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/files/watchdog.service	1970-01-01 09:00:00.000000000 +0900
+@@ -1,10 +0,0 @@
+-[Unit]
+-Description=WatchdogTimer
+-
+-[Service]
+-Type=simple
+-ExecStart=/usr/bin/watchdog-test -d -t 60 -e
+-ExecStop=/usr/bin/killall -s INT watchdog-test
+-
+-[Install]
+-WantedBy=multi-user.target
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog-config/watchdog.conf v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog-config/watchdog.conf
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog-config/watchdog.conf	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog-config/watchdog.conf	2024-01-30 10:26:01.353335688 +0900
+@@ -0,0 +1,42 @@
++#ping			= 172.31.14.1
++#ping			= 172.26.1.255
++#interface		= eth0
++#file			= /var/log/messages
++#change			= 1407
++
++# Uncomment to enable test. Setting one of these values to '0' disables it.
++# These values will hopefully never reboot your machine during normal use
++# (if your machine is really hung, the loadavg will go much higher than 25)
++#max-load-1		= 24
++#max-load-5		= 18
++#max-load-15		= 12
++
++# Note that this is the number of pages!
++# To get the real size, check how large the pagesize is on your machine.
++#min-memory		= 1
++
++#repair-binary		= /usr/sbin/repair
++#repair-timeout		=
++#test-binary		=
++#test-timeout		=
++
++watchdog-device	= /dev/watchdog
++
++# Defaults compiled into the binary
++#temperature-device	=
++#max-temperature	= 120
++
++# Defaults compiled into the binary
++#admin			= root
++#interval		= 1
++#logtick                = 1
++#log-dir		= /var/log/watchdog
++log-dir                = /var/volatile/log
++
++# This greatly decreases the chance that watchdog won't be scheduled before
++# your machine is really loaded
++realtime		= yes
++priority		= 1
++
++# Check if rsyslogd is still running by enabling the following line
++#pidfile		= /var/run/rsyslogd.pid
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog-config.bbappend v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog-config.bbappend
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog-config.bbappend	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog-config.bbappend	2024-01-30 10:26:01.353335688 +0900
+@@ -0,0 +1,5 @@
++FILESEXTRAPATHS_append := "${THISDIR}/${PN}/:"
++
++SRC_URI_append = " \
++	file://watchdog.conf \
++"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog_%.bbappend v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog_%.bbappend
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog_%.bbappend	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog_%.bbappend	2024-01-30 10:26:01.353335688 +0900
+@@ -0,0 +1,2 @@
++FILESEXTRAPATHS_append := "${THISDIR}/${PN}/:"
++SYSTEMD_AUTO_ENABLE = "enable"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog_1.0.bb v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog_1.0.bb
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog_1.0.bb	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-extend/watchdog/watchdog_1.0.bb	1970-01-01 09:00:00.000000000 +0900
+@@ -1,36 +0,0 @@
+-inherit systemd
+-
+-SUMMARY = "Watchdog Timer Service"
+-LICENSE = "MIT"
+-LIC_FILES_CHKSUM = " \
+-	file://COPYING.MIT;md5=d81509f2a88139ee9635b880116710dc \
+-"
+-
+-SYSTEMD_AUTO_ENABLE ?= "enable"
+-SYSTEMD_SERVICE_${PN} = "watchdog.service"
+-DEPENDS = "linux-renesas"
+-
+-FILES_${PN} += " \
+-        ${systemd_unitdir}/system/watchdog.service \
+-        ${bindir}/watchdog-test \
+-"
+-
+-INSANE_SKIP_${PN} = "ldflags"
+-
+-SRC_URI = " \
+-	file://watchdog.service \
+-	file://COPYING.MIT \
+-"
+-
+-S = "${WORKDIR}"
+-
+-do_compile() {
+-	${CC} -o watchdog-test ${STAGING_KERNEL_DIR}/tools/testing/selftests/watchdog/watchdog-test.c
+-}
+-
+-do_install() {
+-	install -d ${D}${bindir}
+-	install -m 0755 watchdog-test ${D}${bindir}
+-	install -d ${D}${systemd_unitdir}/system
+-	install -m 0644 ${WORKDIR}/watchdog.service ${D}${systemd_unitdir}/system
+-}
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-kernel/kernel-module-vspm/files/0014-ISU-remove-csc-mode-in-struct-isu_csc_t.patch v3.0.5update3/meta-renesas/meta-rz-common/recipes-kernel/kernel-module-vspm/files/0014-ISU-remove-csc-mode-in-struct-isu_csc_t.patch
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-kernel/kernel-module-vspm/files/0014-ISU-remove-csc-mode-in-struct-isu_csc_t.patch	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-kernel/kernel-module-vspm/files/0014-ISU-remove-csc-mode-in-struct-isu_csc_t.patch	2024-01-30 10:26:01.357335715 +0900
+@@ -0,0 +1,69 @@
++From dee72a68714d2fbf826f3939f44bf875da576357 Mon Sep 17 00:00:00 2001
++From: "Nhat Quang Minh. Thieu" <nhat.thieu.xr@renesas.com>
++Date: Mon, 20 Nov 2023 18:39:38 +0700
++Subject: [PATCH 14/14] ISU: remove csc mode in struct isu_csc_t
++
++Setting for csc mode is ignored from now.
++However, the size of isu_csc_t is unchanged.
++
++Signed-off-by: Nhat Quang Minh. Thieu <nhat.thieu.xr@renesas.com>
++---
++ vspm-module/files/vspm/drv/isu/isu_drv_par.c | 40 +++++---------------
++ 1 file changed, 10 insertions(+), 30 deletions(-)
++
++diff --git a/vspm-module/files/vspm/drv/isu/isu_drv_par.c b/vspm-module/files/vspm/drv/isu/isu_drv_par.c
++index 5f38e61..ac46b92 100755
++--- a/vspm-module/files/vspm/drv/isu/isu_drv_par.c
+++++ b/vspm-module/files/vspm/drv/isu/isu_drv_par.c
++@@ -374,38 +374,18 @@ static long isu_ins_check_wpf_param( struct isu_ch_info *ch_info,
++ 
++ 	/* check color space conversion parameter */
++ 	if (dst_par->csc) {
++-		switch (dst_par->csc->csc){
++-		case ISU_CSC_CUSTOM:
++-			wpf_info->ccol |= ISU_WPF_CCOL_SEL;  // enable color conversion
++-			wpf_info->ccol |= ISU_WPF_CCOL_ASE; // enable alpha color conversion
++-			for (i = 0; i < ISU_LAYER_NUM; i++) {
++-				for (j = 0; j < ISU_LAYER_NUM; j++) {
++-					wpf_info->k_matrix[i][j] = dst_par->csc->k_matrix[i][j];
++-				}
+++		wpf_info->ccol |= ISU_WPF_CCOL_SEL;  // enable color conversion
+++		wpf_info->ccol |= ISU_WPF_CCOL_ASE; // enable alpha color conversion
+++		for (i = 0; i < ISU_LAYER_NUM; i++) {
+++			for (j = 0; j < ISU_LAYER_NUM; j++) {
+++				wpf_info->k_matrix[i][j] = dst_par->csc->k_matrix[i][j];
++ 			}
++-			for (i = 0; i < ISU_LAYER_NUM; i++) {
++-				for (j = 0; j < ISU_OFFSET_NUM; j++) {
++-					wpf_info->offset[i][j] = dst_par->csc->offset[i][j]&0xFF;
++-					wpf_info->clip[i][j] = dst_par->csc->clip[i][j]&0xFF;
++-				}
++-			}
++-			break;
++-		case ISU_CSC_RAW:
++-			if((wpf_info->format>=ISU_ARGB1555)
++-			&&(wpf_info->format<=ISU_ABGR8888)){
++-				wpf_info->k_matrix[0][0] = 0x400;
++-				wpf_info->k_matrix[1][0] = 0x400;
++-				wpf_info->k_matrix[2][0] = 0x400;
++-			}
++-			if((wpf_info->format>=ISU_YUV422_UYVY)
++-			&&(wpf_info->format<=ISU_YUV420_NV12)){
++-				wpf_info->k_matrix[0][0] = 0x400;
++-				wpf_info->offset[1][1] = 128;
++-				wpf_info->offset[2][1] = 128;
+++		}
+++		for (i = 0; i < ISU_LAYER_NUM; i++) {
+++			for (j = 0; j < ISU_OFFSET_NUM; j++) {
+++				wpf_info->offset[i][j] = dst_par->csc->offset[i][j]&0xFF;
+++				wpf_info->clip[i][j] = dst_par->csc->clip[i][j]&0xFF;
++ 			}
++-			break;
++-		default:
++-			return E_ISU_PARA_OUT_CSC;
++ 		}
++ 	} else {
++ 		/* disable color space conversion */
++-- 
++2.25.1
++
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-kernel/kernel-module-vspm/kernel-module-vspm.bb v3.0.5update3/meta-renesas/meta-rz-common/recipes-kernel/kernel-module-vspm/kernel-module-vspm.bb
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-kernel/kernel-module-vspm/kernel-module-vspm.bb	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-kernel/kernel-module-vspm/kernel-module-vspm.bb	2024-01-30 10:26:01.357335715 +0900
+@@ -33,6 +33,7 @@
+ 	file://0011-Fix-error-cannot-detect-NOOUT-in-case-rs_par-NULL.patch \
+ 	file://0012-vspm_main-Update-isu-clock-enable.patch \
+ 	file://0013-vspm-isu-Check-addr-of-1st-plane-in-parameter-for-RP.patch \
++	file://0014-ISU-remove-csc-mode-in-struct-isu_csc_t.patch \
+ "
+ 
+ S = "${WORKDIR}/git"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-kernel/linux/linux-renesas_5.10.bb v3.0.5update3/meta-renesas/meta-rz-common/recipes-kernel/linux/linux-renesas_5.10.bb
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-kernel/linux/linux-renesas_5.10.bb	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-kernel/linux/linux-renesas_5.10.bb	2024-01-30 10:26:01.357335715 +0900
+@@ -13,7 +13,7 @@
+ KERNEL_URL = " \
+     git://github.com/renesas-rz/rz_linux-cip.git"
+ BRANCH = "${@oe.utils.conditional("IS_RT_BSP", "1", "rz-5.10-cip36-rt14", "rz-5.10-cip36",d)}"
+-SRCREV = "${@oe.utils.conditional("IS_RT_BSP", "1", "80929ede34ab51d9a80e366837e89c0eaf0ac2cb", "1fa7acb4360944216070a41a9da26e6595c20998",d)}"
++SRCREV = "${@oe.utils.conditional("IS_RT_BSP", "1", "f6d8deae984c9ae14e55159de46667fd66e52af3", "c45e3a8129dd0ee36c51079e95962b2f85472e51",d)}"
+ 
+ SRC_URI = "${KERNEL_URL};protocol=https;nocheckout=1;branch=${BRANCH}"
+ LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-kernel/linux-libc-headers/linux-libc-headers_5.10.bb v3.0.5update3/meta-renesas/meta-rz-common/recipes-kernel/linux-libc-headers/linux-libc-headers_5.10.bb
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-kernel/linux-libc-headers/linux-libc-headers_5.10.bb	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-kernel/linux-libc-headers/linux-libc-headers_5.10.bb	2024-01-30 10:26:01.357335715 +0900
+@@ -3,7 +3,7 @@
+ KERNEL_URL = " \
+     git://github.com/renesas-rz/rz_linux-cip.git"
+ BRANCH = "${@oe.utils.conditional("IS_RT_BSP", "1", "rz-5.10-cip36-rt14", "rz-5.10-cip36",d)}"
+-SRCREV = "${@oe.utils.conditional("IS_RT_BSP", "1", "80929ede34ab51d9a80e366837e89c0eaf0ac2cb", "1fa7acb4360944216070a41a9da26e6595c20998",d)}"
++SRCREV = "${@oe.utils.conditional("IS_RT_BSP", "1", "f6d8deae984c9ae14e55159de46667fd66e52af3", "c45e3a8129dd0ee36c51079e95962b2f85472e51",d)}"
+ LIC_FILES_CHKSUM = "file://COPYING;md5=6bc538ed5bd9a7fc9398086aedcd7e46"
+ 
+ SRC_URI = "${KERNEL_URL};branch=${BRANCH}"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad/0007-gstreamer-waylandsink-Add-stride-restriction-to-buff.patch v3.0.5update3/meta-renesas/meta-rz-common/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad/0007-gstreamer-waylandsink-Add-stride-restriction-to-buff.patch
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad/0007-gstreamer-waylandsink-Add-stride-restriction-to-buff.patch	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad/0007-gstreamer-waylandsink-Add-stride-restriction-to-buff.patch	2024-01-30 10:26:01.357335715 +0900
+@@ -0,0 +1,109 @@
++From 53dfd6510a618ac438a9ed2a33d1791dbd575f9c Mon Sep 17 00:00:00 2001
++From: Kiet Pham <kiet.pham.xb@renesas.com>
++Date: Tue, 8 Aug 2023 16:32:23 +0700
++Subject: [PATCH] gstreamer: waylandsink: Add stride restriction to buffer pool
++
++ARM Mali requires aligned row-stride for dma-buffer with specific color format.
++Add this restriction into buffer pool to propose to upstream.
++
++Signed-off-by: Kiet Pham <kiet.pham.xb@renesas.com>
++---
++ ext/wayland/gstwaylandsink.c | 54 +++++++++++++++++++++++++++++++++++-
++ 1 file changed, 53 insertions(+), 1 deletion(-)
++
++diff --git a/ext/wayland/gstwaylandsink.c b/ext/wayland/gstwaylandsink.c
++index 8e9feaefeea..978599b4be0 100644
++--- a/ext/wayland/gstwaylandsink.c
+++++ b/ext/wayland/gstwaylandsink.c
++@@ -48,6 +48,7 @@
++ #include "wlshmallocator.h"
++ #include "wllinuxdmabuf.h"
++
+++#include <gst/video/video.h>
++ #include <gst/wayland/wayland.h>
++ #include <gst/video/videooverlay.h>
++
++@@ -151,7 +152,9 @@ G_DEFINE_TYPE (GstWaylandPool, gst_wayland_pool, GST_TYPE_VIDEO_BUFFER_POOL);
++ static const gchar **
++ gst_wayland_pool_get_options (GstBufferPool * pool)
++ {
++-  static const gchar *options[] = { GST_BUFFER_POOL_OPTION_VIDEO_META, NULL };
+++  static const gchar *options[] = {GST_BUFFER_POOL_OPTION_VIDEO_META,
+++                                   GST_BUFFER_POOL_OPTION_VIDEO_ALIGNMENT,
+++                                   NULL};
++   return options;
++ }
++
++@@ -566,6 +569,50 @@ gst_wayland_sink_get_caps (GstBaseSink * bsink, GstCaps * filter)
++   return caps;
++ }
++
+++static void
+++gst_wayland_set_alignment (GstWaylandSink * sink, GstVideoAlignment * align)
+++{
+++  guint stride_align, n_planes, i;
+++
+++  gst_video_alignment_reset (align);
+++  /* In dma-buffer, ARM Mali requires strict allocation alignment for each
+++   * color format. */
+++  /* FIXME: In weston-8.0.0, there are 6 colors format are supported (limit by
+++   * list of SHM format, including BGRA, BGRx, NV12, RGB16, YUY2, I420).
+++   * Therefore, we can only confirm the alignment for them (except I420) and
+++   * propose to upstream. If weston is updated, we need to define more color
+++   * format in this condition */
+++  switch (GST_VIDEO_FORMAT_INFO_FORMAT (sink->video_info.finfo)) {
+++    case GST_VIDEO_FORMAT_BGRA:
+++    case GST_VIDEO_FORMAT_BGRx:
+++      stride_align = 64;
+++      break;
+++    case GST_VIDEO_FORMAT_RGB16:
+++    case GST_VIDEO_FORMAT_NV12:
+++    case GST_VIDEO_FORMAT_YUY2:
+++      stride_align = 16;
+++      break;
+++    default:
+++      /* Not confirmed */
+++      stride_align = 0;
+++      break;
+++  }
+++
+++  n_planes = sink->video_info.finfo->n_planes;
+++  for (i = 0; i < n_planes; i++) {
+++    align->stride_align[i] = stride_align;
+++  }
+++
+++  GST_DEBUG_OBJECT(sink, "padding top:%u, left:%u, right:%u, bottom:%u, "
+++                         "stride_align %d:%d:%d:%d",
+++                         align->padding_top, align->padding_left,
+++                         align->padding_right, align->padding_bottom,
+++                         align->stride_align[0], align->stride_align[1],
+++                         align->stride_align[2], align->stride_align[3]);
+++
+++  return;
+++}
+++
++ static GstBufferPool *
++ gst_wayland_create_pool (GstWaylandSink * sink, GstCaps * caps)
++ {
++@@ -573,6 +620,7 @@ gst_wayland_create_pool (GstWaylandSink * sink, GstCaps * caps)
++   GstStructure *structure;
++   gsize size = sink->video_info.size;
++   GstAllocator *alloc;
+++  GstVideoAlignment align;
++
++   pool = g_object_new (gst_wayland_pool_get_type (), NULL);
++
++@@ -581,6 +629,10 @@ gst_wayland_create_pool (GstWaylandSink * sink, GstCaps * caps)
++
++   alloc = gst_wl_shm_allocator_get ();
++   gst_buffer_pool_config_set_allocator (structure, alloc, NULL);
+++
+++  gst_wayland_set_alignment (sink, &align);
+++  gst_buffer_pool_config_set_video_alignment (structure, &align);
+++
++   if (!gst_buffer_pool_set_config (pool, structure)) {
++     g_object_unref (pool);
++     pool = NULL;
++--
++2.25.1
++
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad_1.16.3.bbappend v3.0.5update3/meta-renesas/meta-rz-common/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad_1.16.3.bbappend
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad_1.16.3.bbappend	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-multimedia/gstreamer/gstreamer1.0-plugins-bad_1.16.3.bbappend	2024-01-30 10:26:01.357335715 +0900
+@@ -12,6 +12,10 @@
+     file://0006-waylandsink-Add-support-for-I420-in-dmabuf.patch \
+ "
+ 
++SRC_URI_append_rzg2l = " \
++    file://0007-gstreamer-waylandsink-Add-stride-restriction-to-buff.patch \
++"
++
+ SRCREV_base = "3ef17d3c57e12f9d7536e464656b871a8949fa5b"
+ 
+ DEPENDS += "weston"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/recipes-multimedia/mmngr-module/mmngr_lib.inc v3.0.5update3/meta-renesas/meta-rz-common/recipes-multimedia/mmngr-module/mmngr_lib.inc
+--- v3.0.5/meta-renesas/meta-rz-common/recipes-multimedia/mmngr-module/mmngr_lib.inc	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/recipes-multimedia/mmngr-module/mmngr_lib.inc	2024-01-30 10:26:01.357335715 +0900
+@@ -6,7 +6,7 @@
+ MMNGR_LIB_URI = "git://github.com/renesas-rcar/mmngr_lib.git"
+ 
+ SRC_URI = "${MMNGR_LIB_URI};branch=rcar_gen3"
+-SRCREV = "e55a8356c906486ee0be78b2a1fde227e7a578f4"
++SRCREV = "0322548e54b45a064c9cecea29018ef50cdb8423"
+ 
+ # Get Wordsize of test app and change their names later to avoid override
+ WS_aarch64 = ""
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-esd-pmic.wks v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-esd-pmic.wks
+--- v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-esd-pmic.wks	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-esd-pmic.wks	2024-01-30 10:26:01.357335715 +0900
+@@ -0,0 +1,14 @@
++# Short-description: Create SD card image for eSD boot
++# Long-description: Creates a SD card image that can be used to boot up RZ boards.
++#                   First area (unformatted) contains bootloader
++#                   Second area (first partition) contains files of bootloader and related components
++#                   Last area (second partition) contains rootfs, as well as Linux image and devicetree
++#                   Note: for eSD boot, SD card must be mmc0. If not use eSD boot mode, on the boards
++#                         with multiple SD card slots, SD card can be either mmc0 or mmc1.
++
++part --source rawcopy --sourceparams="file=bl2_bp_esd-${MACHINE}_pmic.bin" --no-table
++part --source rawcopy --sourceparams="file=bl2_bp-${MACHINE}_pmic.bin" --no-table --align 4
++part --source rawcopy --sourceparams="file=fip-${MACHINE}_pmic.bin" --no-table  --align 64
++
++part --source bootimg-partition --fstype=vfat --label bootloaderfiles --align 1024
++part --source rootfs            --fstype=ext4 --label root            --align 4
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-esd.wks v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-esd.wks
+--- v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-esd.wks	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-esd.wks	2024-01-30 10:26:01.357335715 +0900
+@@ -0,0 +1,14 @@
++# Short-description: Create SD card image for eSD boot
++# Long-description: Creates a SD card image that can be used to boot up RZ boards.
++#                   First area (unformatted) contains bootloader
++#                   Second area (first partition) contains files of bootloader and related components
++#                   Last area (second partition) contains rootfs, as well as Linux image and devicetree
++#                   Note: for eSD boot, SD card must be mmc0. If not use eSD boot mode, on the boards
++#                         with multiple SD card slots, SD card can be either mmc0 or mmc1.
++
++part --source rawcopy --sourceparams="file=bl2_bp_esd-${MACHINE}.bin" --no-table
++part --source rawcopy --sourceparams="file=bl2_bp-${MACHINE}.bin" --no-table --align 4
++part --source rawcopy --sourceparams="file=fip-${MACHINE}.bin" --no-table  --align 64
++
++part --source bootimg-partition --fstype=vfat --label bootloaderfiles --align 1024
++part --source rootfs            --fstype=ext4 --label root            --align 4
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc.wks v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc.wks
+--- v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc.wks	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc.wks	2024-01-30 10:26:01.357335715 +0900
+@@ -0,0 +1,10 @@
++# Short-description: Create image for eMMC
++# Long-description: Creates a image that can be used to write to eMMC for RZ boards
++#                   First partition contains files of bootloader and related components
++#                   Second partition contains rootfs, as well as Linux image and devicetree
++#                   Note: the bootloader in first partition cannot be used for eMMC boot. In eMMC boot
++#                         user has to manually write the bootloader to mmcblk0boot0.
++
++
++part --source bootimg-partition --fstype=vfat --label bootloaderfiles --align 1024 --fixed-size 512M
++part --source rootfs            --fstype=ext4 --label root            --align 4
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc0.wks v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc0.wks
+--- v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc0.wks	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc0.wks	1970-01-01 09:00:00.000000000 +0900
+@@ -1,6 +0,0 @@
+-# short-description: Create SD card image with a boot partition
+-# long-description: Creates a partitioned SD card image. Boot files
+-# are located in the first vfat partition.
+-
+-part /boot --source bootimg-partition --ondisk mmcblk0 --fstype=vfat --label boot --active --align 4
+-part / --source rootfs --ondisk mmcblk0 --fstype=ext4 --label root --align 4
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc1.wks v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc1.wks
+--- v3.0.5/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc1.wks	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rz-common/wic/rz-image-bootpart-mmc1.wks	1970-01-01 09:00:00.000000000 +0900
+@@ -1,6 +0,0 @@
+-# short-description: Create SD card image with a boot partition
+-# long-description: Creates a partitioned SD card image. Boot files
+-# are located in the first vfat partition.
+-
+-part /boot --source bootimg-partition --ondisk mmcblk1 --fstype=vfat --label boot --active --align 4
+-part / --source rootfs --ondisk mmcblk1 --fstype=ext4 --label root --align 4
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzfive/conf/machine/rzfive-dev.conf v3.0.5update3/meta-renesas/meta-rzfive/conf/machine/rzfive-dev.conf
+--- v3.0.5/meta-renesas/meta-rzfive/conf/machine/rzfive-dev.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzfive/conf/machine/rzfive-dev.conf	2024-01-30 10:26:01.357335715 +0900
+@@ -25,3 +25,4 @@
+ 	fit-${MACHINE}.srec \
+ 	Flash_Writer_SCIF_RZFIVE_13MMSQ_DEV.mot \
+ "
++WIC_INPUT_DEPENDS = "u-boot:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzfive/conf/machine/smarc-rzfive.conf v3.0.5update3/meta-renesas/meta-rzfive/conf/machine/smarc-rzfive.conf
+--- v3.0.5/meta-renesas/meta-rzfive/conf/machine/smarc-rzfive.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzfive/conf/machine/smarc-rzfive.conf	2024-01-30 10:26:01.357335715 +0900
+@@ -25,3 +25,4 @@
+ 	fit-${MACHINE}.srec \
+ 	Flash_Writer_SCIF_RZFIVE_SMARC.mot \
+ "
++WIC_INPUT_DEPENDS = "u-boot:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg1/docs/template/conf/local.conf.sample v3.0.5update3/meta-renesas/meta-rzg1/docs/template/conf/local.conf.sample
+--- v3.0.5/meta-renesas/meta-rzg1/docs/template/conf/local.conf.sample	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg1/docs/template/conf/local.conf.sample	2024-01-30 13:48:42.347611798 +0900
+@@ -277,6 +277,8 @@
+ # Enable wayland and disable x11
+ DISTRO_FEATURES_append = " wayland"
+ DISTRO_FEATURES_remove = " x11"
++DISTRO_FEATURES_NATIVESDK_append = " wayland"
++DISTRO_FEATURES_NATIVESDK_remove = " x11"
+ 
+ # Add qt5 demonstration to core-image-qt or not
+ #QT_DEMO = "1"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2h/conf/machine/ek874.conf v3.0.5update3/meta-renesas/meta-rzg2h/conf/machine/ek874.conf
+--- v3.0.5/meta-renesas/meta-rzg2h/conf/machine/ek874.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2h/conf/machine/ek874.conf	2024-01-30 10:26:01.369335797 +0900
+@@ -39,14 +39,15 @@
+ EXTRA_IMAGEDEPENDS += " flash-writer"
+ 
+ IMAGE_BOOT_FILES = " \
+-	bootparam_sa0.srec \
+-	bl2-${MACHINE}.srec \
+-	cert_header_sa6.srec \
+-	bl31-${MACHINE}.srec \
+-	tee-${MACHINE}.srec \
+-	u-boot-elf-${MACHINE}.srec \
++	bootparam_sa0.bin \
++	bl2-${MACHINE}.bin \
++	cert_header_sa6.bin \
++	bl31-${MACHINE}.bin \
++	tee-${MACHINE}.bin \
++	u-boot-${MACHINE}.bin \
+ 	AArch64_Flash_writer_SCIF_DUMMY_CERT_E6300400_ek874.mot \
+ "
++WIC_INPUT_DEPENDS = "trusted-firmware-a:do_deploy u-boot:do_deploy flash-writer:do_deploy"
+ 
+ # Command using to build kernel-module-gles
+ HOSTTOOLS += "sync"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2h.conf v3.0.5update3/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2h.conf
+--- v3.0.5/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2h.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2h.conf	2024-01-30 10:26:01.369335797 +0900
+@@ -30,14 +30,15 @@
+ EXTRA_IMAGEDEPENDS += " flash-writer"
+ 
+ IMAGE_BOOT_FILES = " \
+-	bootparam_sa0.srec \
+-	bl2-${MACHINE}.srec \
+-	cert_header_sa6.srec \
+-	bl31-${MACHINE}.srec \
+-	tee-${MACHINE}.srec \
+-	u-boot-elf-${MACHINE}.srec \
++	bootparam_sa0.bin \
++	bl2-${MACHINE}.bin \
++	cert_header_sa6.bin \
++	bl31-${MACHINE}.bin \
++	tee-${MACHINE}.bin \
++	u-boot-${MACHINE}.bin \
+ 	AArch64_Flash_writer_SCIF_DUMMY_CERT_E6300400_hihope.mot \
+ "
++WIC_INPUT_DEPENDS = "trusted-firmware-a:do_deploy u-boot:do_deploy flash-writer:do_deploy"
+ 
+ # Add variable to Build Configuration in build log
+ BUILDCFG_VARS_append = " SOC_FAMILY"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2m.conf v3.0.5update3/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2m.conf
+--- v3.0.5/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2m.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2m.conf	2024-01-30 10:26:01.369335797 +0900
+@@ -42,14 +42,15 @@
+ EXTRA_IMAGEDEPENDS += " flash-writer"
+ 
+ IMAGE_BOOT_FILES = " \
+-	bootparam_sa0.srec \
+-	bl2-${MACHINE}.srec \
+-	cert_header_sa6.srec \
+-	bl31-${MACHINE}.srec \
+-	tee-${MACHINE}.srec \
+-	u-boot-elf-${MACHINE}.srec \
++	bootparam_sa0.bin \
++	bl2-${MACHINE}.bin \
++	cert_header_sa6.bin \
++	bl31-${MACHINE}.bin \
++	tee-${MACHINE}.bin \
++	u-boot-${MACHINE}.bin \
+ 	AArch64_Flash_writer_SCIF_DUMMY_CERT_E6300400_hihope.mot \
+ "
++WIC_INPUT_DEPENDS = "trusted-firmware-a:do_deploy u-boot:do_deploy flash-writer:do_deploy"
+ 
+ # Add variable to Build Configuration in build log
+ BUILDCFG_VARS_append = " SOC_FAMILY"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2n.conf v3.0.5update3/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2n.conf
+--- v3.0.5/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2n.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2h/conf/machine/hihope-rzg2n.conf	2024-01-30 10:26:01.369335797 +0900
+@@ -35,14 +35,15 @@
+ EXTRA_IMAGEDEPENDS += " flash-writer"
+ 
+ IMAGE_BOOT_FILES = " \
+-	bootparam_sa0.srec \
+-	bl2-${MACHINE}.srec \
+-	cert_header_sa6.srec \
+-	bl31-${MACHINE}.srec \
+-	tee-${MACHINE}.srec \
+-	u-boot-elf-${MACHINE}.srec \
++	bootparam_sa0.bin \
++	bl2-${MACHINE}.bin \
++	cert_header_sa6.bin \
++	bl31-${MACHINE}.bin \
++	tee-${MACHINE}.bin \
++	u-boot-${MACHINE}.bin \
+ 	AArch64_Flash_writer_SCIF_DUMMY_CERT_E6300400_hihope.mot \
+ "
++WIC_INPUT_DEPENDS = "trusted-firmware-a:do_deploy u-boot:do_deploy flash-writer:do_deploy"
+ 
+ # Add variable to Build Configuration in build log
+ BUILDCFG_VARS_append = " SOC_FAMILY"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2h/docs/template/conf/local.conf.sample v3.0.5update3/meta-renesas/meta-rzg2h/docs/template/conf/local.conf.sample
+--- v3.0.5/meta-renesas/meta-rzg2h/docs/template/conf/local.conf.sample	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2h/docs/template/conf/local.conf.sample	2024-01-30 13:47:35.931167498 +0900
+@@ -277,6 +277,8 @@
+ # Enable wayland and disable x11
+ DISTRO_FEATURES_append = " wayland"
+ DISTRO_FEATURES_remove = " x11"
++DISTRO_FEATURES_NATIVESDK_append = " wayland"
++DISTRO_FEATURES_NATIVESDK_remove = " x11"
+ 
+ # Add qt5 demonstration to core-image-qt or not
+ #QT_DEMO = "1"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2h/recipes-bsp/trusted-firmware-a/trusted-firmware-a.bbappend v3.0.5update3/meta-renesas/meta-rzg2h/recipes-bsp/trusted-firmware-a/trusted-firmware-a.bbappend
+--- v3.0.5/meta-renesas/meta-rzg2h/recipes-bsp/trusted-firmware-a/trusted-firmware-a.bbappend	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2h/recipes-bsp/trusted-firmware-a/trusted-firmware-a.bbappend	2024-01-30 10:26:01.369335797 +0900
+@@ -16,7 +16,7 @@
+ 
+ ATFW_OPT_append += " RZG_DRAM_ECC_FULL=${ECC_FULL} "
+ 
+-ATFW_OPT_append += " RCAR_RPC_HYPERFLASH_LOCKED=0 MBEDTLS_DIR=../mbedtls "
++ATFW_OPT_append += " RCAR_RPC_HYPERFLASH_LOCKED=0 "
+ 
+ ATFW_OPT_append += " \
+     ${@oe.utils.conditional("ENABLE_SPD_OPTEE", "1", " SPD=opteed", "",d)} \
+@@ -37,6 +37,8 @@
+     install -m 0644 ${S}/build/${PLATFORM}/release/bl2.srec ${DEPLOYDIR}/bl2-${MACHINE}.srec
+     install -m 0644 ${S}/build/${PLATFORM}/release/bl31.srec ${DEPLOYDIR}/bl31-${MACHINE}.srec
+     install -m 0644 ${S}/tools/renesas/rzg_layout_create/bootparam_sa0.srec ${DEPLOYDIR}/bootparam_sa0.srec
++    install -m 0644 ${S}/tools/renesas/rzg_layout_create/bootparam_sa0.bin ${DEPLOYDIR}/bootparam_sa0.bin
+     install -m 0644 ${S}/tools/renesas/rzg_layout_create/cert_header_sa6.srec ${DEPLOYDIR}/cert_header_sa6.srec
++    install -m 0644 ${S}/tools/renesas/rzg_layout_create/cert_header_sa6.bin ${DEPLOYDIR}/cert_header_sa6.bin
+ 
+ }
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2l/conf/machine/rzg2l-dev.conf v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/rzg2l-dev.conf
+--- v3.0.5/meta-renesas/meta-rzg2l/conf/machine/rzg2l-dev.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/rzg2l-dev.conf	2024-01-30 10:26:01.373335824 +0900
+@@ -25,7 +25,8 @@
+ "
+ 
+ IMAGE_BOOT_FILES = " \
+-	bl2_bp-${MACHINE}.srec \
+-	fip-${MACHINE}.srec \
++	bl2_bp-${MACHINE}.bin \
++	fip-${MACHINE}.bin \
+ 	Flash_Writer_SCIF_RZG2L_15MMSQ_DEV_DDR4_4GB.mot \
+ "
++WIC_INPUT_DEPENDS = "firmware-pack:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2l/conf/machine/rzg2lc-dev.conf v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/rzg2lc-dev.conf
+--- v3.0.5/meta-renesas/meta-rzg2l/conf/machine/rzg2lc-dev.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/rzg2lc-dev.conf	2024-01-30 10:26:01.373335824 +0900
+@@ -25,7 +25,8 @@
+ "
+ 
+ IMAGE_BOOT_FILES = " \
+-	bl2_bp-${MACHINE}.srec \
+-	fip-${MACHINE}.srec \
++	bl2_bp-${MACHINE}.bin \
++	fip-${MACHINE}.bin \
+ 	Flash_Writer_SCIF_RZG2LC_DEV_DDR3L_1GB.mot \
+ "
++WIC_INPUT_DEPENDS = "firmware-pack:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2l/conf/machine/rzg2ul-dev.conf v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/rzg2ul-dev.conf
+--- v3.0.5/meta-renesas/meta-rzg2l/conf/machine/rzg2ul-dev.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/rzg2ul-dev.conf	2024-01-30 10:26:01.373335824 +0900
+@@ -25,7 +25,8 @@
+ "
+ 
+ IMAGE_BOOT_FILES = " \
+-	bl2_bp-${MACHINE}.srec \
+-	fip-${MACHINE}.srec \
++	bl2_bp-${MACHINE}.bin \
++	fip-${MACHINE}.bin \
+ 	Flash_Writer_SCIF_RZG2UL_TYPE1_DEV_DDR4_1GB_1PCS.mot \
+ "
++WIC_INPUT_DEPENDS = "firmware-pack:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2l.conf v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2l.conf
+--- v3.0.5/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2l.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2l.conf	2024-01-30 10:26:01.373335824 +0900
+@@ -29,10 +29,11 @@
+ "
+ 
+ IMAGE_BOOT_FILES = " \
+-	bl2_bp-${MACHINE}_pmic.srec \
+-	bl2_bp-${MACHINE}.srec \
+-	fip-${MACHINE}_pmic.srec \
+-	fip-${MACHINE}.srec \
++	bl2_bp-${MACHINE}_pmic.bin \
++	bl2_bp-${MACHINE}.bin \
++	fip-${MACHINE}_pmic.bin \
++	fip-${MACHINE}.bin \
+ 	Flash_Writer_SCIF_RZG2L_SMARC_PMIC_DDR4_2GB_1PCS.mot \
+ 	Flash_Writer_SCIF_RZG2L_SMARC_DDR4_2GB.mot \
+ "
++WIC_INPUT_DEPENDS = "firmware-pack:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2lc.conf v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2lc.conf
+--- v3.0.5/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2lc.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2lc.conf	2024-01-30 10:26:01.373335824 +0900
+@@ -25,7 +25,8 @@
+ "
+ 
+ IMAGE_BOOT_FILES = " \
+-	bl2_bp-${MACHINE}.srec \
+-	fip-${MACHINE}.srec \
++	bl2_bp-${MACHINE}.bin \
++	fip-${MACHINE}.bin \
+ 	Flash_Writer_SCIF_RZG2LC_SMARC_DDR4_1GB_1PCS.mot \
+ "
++WIC_INPUT_DEPENDS = "firmware-pack:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2ul.conf v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2ul.conf
+--- v3.0.5/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2ul.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2l/conf/machine/smarc-rzg2ul.conf	2024-01-30 10:26:01.373335824 +0900
+@@ -25,7 +25,8 @@
+ "
+ 
+ IMAGE_BOOT_FILES = " \
+-	bl2_bp-${MACHINE}.srec \
+-	fip-${MACHINE}.srec \
++	bl2_bp-${MACHINE}.bin \
++	fip-${MACHINE}.bin \
+ 	Flash_Writer_SCIF_RZG2UL_SMARC_DDR4_1GB_1PCS.mot \
+ "
++WIC_INPUT_DEPENDS = "firmware-pack:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2l/docs/template/conf/local.conf.sample v3.0.5update3/meta-renesas/meta-rzg2l/docs/template/conf/local.conf.sample
+--- v3.0.5/meta-renesas/meta-rzg2l/docs/template/conf/local.conf.sample	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2l/docs/template/conf/local.conf.sample	2024-01-30 13:49:04.467759756 +0900
+@@ -277,6 +277,8 @@
+ # Enable wayland and disable x11
+ DISTRO_FEATURES_append = " wayland"
+ DISTRO_FEATURES_remove = " x11"
++DISTRO_FEATURES_NATIVESDK_append = " wayland"
++DISTRO_FEATURES_NATIVESDK_remove = " x11"
+ 
+ # Add qt5 demonstration to core-image-qt or not
+ #QT_DEMO = "1"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2l/recipes-bsp/firmware-pack/firmware-pack.bb v3.0.5update3/meta-renesas/meta-rzg2l/recipes-bsp/firmware-pack/firmware-pack.bb
+--- v3.0.5/meta-renesas/meta-rzg2l/recipes-bsp/firmware-pack/firmware-pack.bb	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2l/recipes-bsp/firmware-pack/firmware-pack.bb	2024-01-30 10:26:01.373335824 +0900
+@@ -6,6 +6,8 @@
+ require include/rzg2l-optee-config.inc
+ inherit deploy
+ 
++PACKAGE_ARCH = "${MACHINE_ARCH}"
++
+ DEPENDS = " \
+ 	trusted-firmware-a u-boot \
+ 	${@oe.utils.conditional("ENABLE_SPD_OPTEE", "1", " optee-os", "",d)} \
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzg2l/recipes-bsp/u-boot/u-boot/0001-arm-dts-reserved-ECC-memory-region-for-all-RZ-G2L-Se.patch v3.0.5update3/meta-renesas/meta-rzg2l/recipes-bsp/u-boot/u-boot/0001-arm-dts-reserved-ECC-memory-region-for-all-RZ-G2L-Se.patch
+--- v3.0.5/meta-renesas/meta-rzg2l/recipes-bsp/u-boot/u-boot/0001-arm-dts-reserved-ECC-memory-region-for-all-RZ-G2L-Se.patch	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzg2l/recipes-bsp/u-boot/u-boot/0001-arm-dts-reserved-ECC-memory-region-for-all-RZ-G2L-Se.patch	2024-01-30 10:26:01.373335824 +0900
+@@ -1,4 +1,4 @@
+-From 39de39dbc64af4cd9aa5d103c2f1b3a826bfc253 Mon Sep 17 00:00:00 2001
++From 40acfdc8640bb3ea2f93159a53933618a7ba7043 Mon Sep 17 00:00:00 2001
+ From: Hien Huynh <hien.huynh.px@renesas.com>
+ Date: Tue, 12 Sep 2023 16:02:51 +0700
+ Subject: [PATCH] arm: dts: reserved ECC memory region for all RZ/G2L Series
+@@ -15,10 +15,12 @@
+  arch/arm/dts/rzg2lc-dev.dts       | 2 +-
+  arch/arm/dts/rzg2ul-type1-dev.dts | 2 +-
+  arch/arm/dts/rzg2ul-type2-dev.dts | 2 +-
++ arch/arm/dts/rzv2l-dev.dts        | 2 +-
+  arch/arm/dts/smarc-rzg2l.dts      | 2 +-
+  arch/arm/dts/smarc-rzg2lc.dts     | 2 +-
+  arch/arm/dts/smarc-rzg2ul.dts     | 2 +-
+- 7 files changed, 7 insertions(+), 7 deletions(-)
++ arch/arm/dts/smarc-rzv2l.dts      | 2 +-
++ 9 files changed, 9 insertions(+), 9 deletions(-)
+ 
+ diff --git a/arch/arm/dts/rzg2l-dev.dts b/arch/arm/dts/rzg2l-dev.dts
+ index b9bb206303..afbc250ecd 100644
+@@ -72,6 +74,19 @@
+  	};
+  };
+  
++diff --git a/arch/arm/dts/rzv2l-dev.dts b/arch/arm/dts/rzv2l-dev.dts
++index 4b3fa4cc73..c102e37421 100644
++--- a/arch/arm/dts/rzv2l-dev.dts
+++++ b/arch/arm/dts/rzv2l-dev.dts
++@@ -27,7 +27,7 @@
++ 	memory@48000000 {
++ 		device_type = "memory";
++ 		/* first 128MB is reserved for secure area. */
++-		reg = <0 0x48000000 0 0x78000000>;
+++		reg = <0 0x48000000 0 0x68000000>;
++ 	};
++ 
++ };
+ diff --git a/arch/arm/dts/smarc-rzg2l.dts b/arch/arm/dts/smarc-rzg2l.dts
+ index 61ff3688b0..97508d06e2 100644
+ --- a/arch/arm/dts/smarc-rzg2l.dts
+@@ -111,6 +126,19 @@
+  	};
+  
+  };
++diff --git a/arch/arm/dts/smarc-rzv2l.dts b/arch/arm/dts/smarc-rzv2l.dts
++index 3c4bc4ef77..45f1533402 100644
++--- a/arch/arm/dts/smarc-rzv2l.dts
+++++ b/arch/arm/dts/smarc-rzv2l.dts
++@@ -28,7 +28,7 @@
++ 	memory@48000000 {
++ 		device_type = "memory";
++ 		/* first 128MB is reserved for secure area. */
++-		reg = <0 0x48000000 0 0x78000000>;
+++		reg = <0 0x48000000 0 0x68000000>;
++ 	};
++ 
++ };
+ -- 
+ 2.25.1
+ 
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2l/conf/machine/include/rzv2l-common.inc v3.0.5update3/meta-renesas/meta-rzv2l/conf/machine/include/rzv2l-common.inc
+--- v3.0.5/meta-renesas/meta-rzv2l/conf/machine/include/rzv2l-common.inc	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2l/conf/machine/include/rzv2l-common.inc	2024-01-30 10:26:01.377335851 +0900
+@@ -1,5 +1,6 @@
+ require conf/machine/include/${SOC_FAMILY}.inc
+ require conf/machine/include/rzg2-common.inc
++require include/ecc-control.inc
+ 
+ # Firmware-pack
+ EXTRA_IMAGEDEPENDS += " firmware-pack"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2l/conf/machine/rzv2l-dev.conf v3.0.5update3/meta-renesas/meta-rzv2l/conf/machine/rzv2l-dev.conf
+--- v3.0.5/meta-renesas/meta-rzv2l/conf/machine/rzv2l-dev.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2l/conf/machine/rzv2l-dev.conf	2024-01-30 10:26:01.377335851 +0900
+@@ -25,7 +25,8 @@
+ "
+ 
+ IMAGE_BOOT_FILES = " \
+-	bl2_bp-${MACHINE}.srec \
+-	fip-${MACHINE}.srec \
++	bl2_bp-${MACHINE}.bin \
++	fip-${MACHINE}.bin \
+ 	Flash_Writer_SCIF_RZV2L_15MMSQ_DEV_DDR4_4GB.mot \
+ "
++WIC_INPUT_DEPENDS = "firmware-pack:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2l/conf/machine/smarc-rzv2l.conf v3.0.5update3/meta-renesas/meta-rzv2l/conf/machine/smarc-rzv2l.conf
+--- v3.0.5/meta-renesas/meta-rzv2l/conf/machine/smarc-rzv2l.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2l/conf/machine/smarc-rzv2l.conf	2024-01-30 10:26:01.377335851 +0900
+@@ -29,10 +29,11 @@
+ "
+ 
+ IMAGE_BOOT_FILES = " \
+-	bl2_bp-${MACHINE}_pmic.srec \
+-	bl2_bp-${MACHINE}.srec \
+-	fip-${MACHINE}_pmic.srec \
+-	fip-${MACHINE}.srec \
++	bl2_bp-${MACHINE}_pmic.bin \
++	bl2_bp-${MACHINE}.bin \
++	fip-${MACHINE}_pmic.bin \
++	fip-${MACHINE}.bin \
+ 	Flash_Writer_SCIF_RZV2L_SMARC_PMIC_DDR4_2GB_1PCS.mot \
+ 	Flash_Writer_SCIF_RZV2L_SMARC_DDR4_4GB.mot \
+ "
++WIC_INPUT_DEPENDS = "firmware-pack:do_deploy flash-writer:do_deploy"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2l/docs/template/conf/local.conf.sample v3.0.5update3/meta-renesas/meta-rzv2l/docs/template/conf/local.conf.sample
+--- v3.0.5/meta-renesas/meta-rzv2l/docs/template/conf/local.conf.sample	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2l/docs/template/conf/local.conf.sample	2024-01-30 13:48:06.031368861 +0900
+@@ -277,6 +277,8 @@
+ # Enable wayland and disable x11
+ DISTRO_FEATURES_append = " wayland"
+ DISTRO_FEATURES_remove = " x11"
++DISTRO_FEATURES_NATIVESDK_append = " wayland"
++DISTRO_FEATURES_NATIVESDK_remove = " x11"
+ 
+ # Add qt5 demonstration to core-image-qt or not
+ #QT_DEMO = "1"
+@@ -333,6 +335,16 @@
+ #SPDX_PRETTY = "1"
+ #SPDX_ARCHIVE_PACKAGED = "1"
+ 
++# Configuration for ECC
++# Add ecc to MACHINE_FEATURES to configure DDR ECC usage,
++# ECC_MODE : ENABLE, ERR_DETECT, ERR_DETECT_CORRECT
++#  - ENABLE : Setting enable ECC DDR only.
++#  - ERR_DETECT : Setting enable ECC DDR and add error detection.
++#  - ERR_DETECT_CORRECT : Setting enable ECC DDR, add single bit error correction multibit detection
++# Example of setting:
++#MACHINE_FEATURES_append = " ecc"
++#ECC_MODE = "ENABLE"
++
+ DL_DIR = "${TOPDIR}/downloads"
+ BB_NO_NETWORK = "0"
+ 
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2l/recipes-kernel/linux/linux-renesas/0001-arm64-dts-renesas-r9a07g054l2-dev-smarc-update-memor.patch v3.0.5update3/meta-renesas/meta-rzv2l/recipes-kernel/linux/linux-renesas/0001-arm64-dts-renesas-r9a07g054l2-dev-smarc-update-memor.patch
+--- v3.0.5/meta-renesas/meta-rzv2l/recipes-kernel/linux/linux-renesas/0001-arm64-dts-renesas-r9a07g054l2-dev-smarc-update-memor.patch	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2l/recipes-kernel/linux/linux-renesas/0001-arm64-dts-renesas-r9a07g054l2-dev-smarc-update-memor.patch	2024-01-30 10:26:01.377335851 +0900
+@@ -0,0 +1,60 @@
++From d99b408c4e375af71daaf606b1b8adfb40615cf9 Mon Sep 17 00:00:00 2001
++From: linaqin <naqin.li.nx@renesas.com>
++Date: Mon, 27 Nov 2023 19:36:18 +0900
++Subject: [PATCH] arm64: dts: renesas: r9a07g054l2-[dev,smarc]: update memory
++ reserved when enable ECC
++
++Update memory reserved when enable ECC for RZ/V2L:
++- image_buf0: 0xB0000000 => 0xa0000000.
++- isp_work0:  0xB4000000 => 0xa4000000
++
++Signed-off-by: NAQIN LI <naqin.li.nx@renesas.com>
++Signed-off-by: Hien Huynh <hien.huynh.px@renesas.com>
++---
++ arch/arm64/boot/dts/renesas/r9a07g054l2-dev.dts   | 4 ++--
++ arch/arm64/boot/dts/renesas/r9a07g054l2-smarc.dts | 4 ++--
++ 2 files changed, 4 insertions(+), 4 deletions(-)
++
++diff --git a/arch/arm64/boot/dts/renesas/r9a07g054l2-dev.dts b/arch/arm64/boot/dts/renesas/r9a07g054l2-dev.dts
++index f9a7b730ec9e..ec3d3b2a290c 100644
++--- a/arch/arm64/boot/dts/renesas/r9a07g054l2-dev.dts
+++++ b/arch/arm64/boot/dts/renesas/r9a07g054l2-dev.dts
++@@ -45,13 +45,13 @@
++ 		image_buf0: image_buf@0 {
++ 			compatible = "shared-dma-pool";
++ 			reusable;
++-			reg = <0x0 0xB0000000 0x0 0x04000000>;
+++			reg = <0x0 0xa0000000 0x0 0x04000000>;
++ 			label = "image_buf0";
++ 		};
++ 
++ 		isp_work0: SIMPLE_ISP {
++ 			reusable;
++-			reg = <0x0 0xB4000000 0x0 0x03000000>;
+++			reg = <0x0 0xa4000000 0x0 0x03000000>;
++ 		};
++ 	};
++ 
++diff --git a/arch/arm64/boot/dts/renesas/r9a07g054l2-smarc.dts b/arch/arm64/boot/dts/renesas/r9a07g054l2-smarc.dts
++index 26a1a2f60f9a..7663f857d959 100644
++--- a/arch/arm64/boot/dts/renesas/r9a07g054l2-smarc.dts
+++++ b/arch/arm64/boot/dts/renesas/r9a07g054l2-smarc.dts
++@@ -30,13 +30,13 @@
++ 		image_buf0: image_buf@0 {
++ 			compatible = "shared-dma-pool";
++ 			reusable;
++-			reg = <0x0 0xB0000000 0x0 0x04000000>;
+++			reg = <0x0 0xa0000000 0x0 0x04000000>;
++ 			label = "image_buf0";
++ 		};
++ 
++ 		isp_work0: SIMPLE_ISP {
++ 			reusable;
++-			reg = <0x0 0xB4000000 0x0 0x03000000>;
+++			reg = <0x0 0xa4000000 0x0 0x03000000>;
++ 		};
++ 	};
++ };
++-- 
++2.17.1
++
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2l/recipes-kernel/linux/linux-renesas_5.10.bbappend v3.0.5update3/meta-renesas/meta-rzv2l/recipes-kernel/linux/linux-renesas_5.10.bbappend
+--- v3.0.5/meta-renesas/meta-rzv2l/recipes-kernel/linux/linux-renesas_5.10.bbappend	1970-01-01 09:00:00.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2l/recipes-kernel/linux/linux-renesas_5.10.bbappend	2024-01-30 10:26:01.377335851 +0900
+@@ -0,0 +1,5 @@
++FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
++
++SRC_URI_append = " \
++	${@oe.utils.conditional("USE_ECC", "1", "file://0001-arm64-dts-renesas-r9a07g054l2-dev-smarc-update-memor.patch", "", d)} \
++"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2m/conf/machine/include/rzv2m-common.inc v3.0.5update3/meta-renesas/meta-rzv2m/conf/machine/include/rzv2m-common.inc
+--- v3.0.5/meta-renesas/meta-rzv2m/conf/machine/include/rzv2m-common.inc	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2m/conf/machine/include/rzv2m-common.inc	2024-01-30 10:26:01.377335851 +0900
+@@ -7,5 +7,5 @@
+ 	openssl-bin \
+ "
+ 
+-RZ_FEATURE_BOOTLOADER = "${@os.path.isdir("${TOPDIR}/../meta-rz-features/meta-rz-bootloaders")}"
++RZ_FEATURE_BOOTLOADER = "${@'True' if 'meta-rz-features/meta-rz-bootloaders' in '${BBLAYERS}' else 'False'}"
+ EXTRA_IMAGEDEPENDS += " ${@oe.utils.conditional('RZ_FEATURE_BOOTLOADER', 'True', ' bootloader', '', d)}"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2m/conf/machine/rzv2m.conf v3.0.5update3/meta-renesas/meta-rzv2m/conf/machine/rzv2m.conf
+--- v3.0.5/meta-renesas/meta-rzv2m/conf/machine/rzv2m.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2m/conf/machine/rzv2m.conf	2024-01-30 10:26:01.377335851 +0900
+@@ -29,8 +29,14 @@
+ 
+ IMAGE_BOOT_FILES = " \
+ 	B2_intSW.bin \
+-	u-boot_param.bin \
+-	u-boot.bin \
++	${@'loader_1st_128kb.bin loader_2nd_param.bin loader_2nd.bin' if '${RZ_FEATURE_BOOTLOADER}' == 'True' else ''} \
++	u-boot_param.bin u-boot.bin \
+ "
++WIC_INPUT_DEPENDS = " \
++	flash-writer:do_deploy \
++	${@'bootloader:do_deploy' if '${RZ_FEATURE_BOOTLOADER}' == 'True' else ''} \
++	u-boot:do_deploy \
++"
++
+ 
+ IMAGE_INSTALL_remove = " optee-client"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2m/conf/machine/rzv2ma.conf v3.0.5update3/meta-renesas/meta-rzv2m/conf/machine/rzv2ma.conf
+--- v3.0.5/meta-renesas/meta-rzv2m/conf/machine/rzv2ma.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2m/conf/machine/rzv2ma.conf	2024-01-30 10:26:01.377335851 +0900
+@@ -29,8 +29,13 @@
+ 
+ IMAGE_BOOT_FILES = " \
+         B2_intSW.bin \
+-        u-boot_param.bin \
+-        u-boot.bin \
++        ${@'loader_1st_128kb.bin loader_2nd_param.bin loader_2nd.bin' if '${RZ_FEATURE_BOOTLOADER}' == 'True' else ''} \
++        u-boot_param.bin u-boot.bin \
++"
++WIC_INPUT_DEPENDS = " \
++        flash-writer:do_deploy \
++        ${@'bootloader:do_deploy' if '${RZ_FEATURE_BOOTLOADER}' == 'True' else ''} \
++        u-boot:do_deploy \
+ "
+ 
+ IMAGE_INSTALL_remove = " optee-client"
+diff -Naur '--exclude=local.conf' v3.0.5/meta-renesas/meta-rzv2m/docs/template/conf/local.conf.sample v3.0.5update3/meta-renesas/meta-rzv2m/docs/template/conf/local.conf.sample
+--- v3.0.5/meta-renesas/meta-rzv2m/docs/template/conf/local.conf.sample	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/meta-rzv2m/docs/template/conf/local.conf.sample	2024-01-30 13:47:51.475271487 +0900
+@@ -277,6 +277,8 @@
+ # Enable wayland and disable x11
+ DISTRO_FEATURES_append = " wayland"
+ DISTRO_FEATURES_remove = " x11"
++DISTRO_FEATURES_NATIVESDK_append = " wayland"
++DISTRO_FEATURES_NATIVESDK_remove = " x11"
+ 
+ # Add qt5 demonstration to core-image-qt or not
+ #QT_DEMO = "1"
+--- v3.0.5/meta-renesas/docs/template/conf/local.conf	2023-09-28 17:51:52.000000000 +0900
++++ v3.0.5update3/meta-renesas/docs/template/conf/local.conf	2024-01-30 13:49:31.015937331 +0900
+@@ -277,6 +277,8 @@
+ # Enable wayland and disable x11
+ DISTRO_FEATURES_append = " wayland"
+ DISTRO_FEATURES_remove = " x11"
++DISTRO_FEATURES_NATIVESDK_append = " wayland"
++DISTRO_FEATURES_NATIVESDK_remove = " x11"
+ 
+ # Add qt5 demonstration to core-image-qt or not
+ #QT_DEMO = "1"
+@@ -309,14 +311,18 @@
+ DISTRO_FEATURES_append = "${@oe.utils.conditional('VIRTUALIZATION_CHECK', 'True', ' virtualization', '', d)}"
+ 
+ # Generate compressed "git2_" gz of all git packages in DL_DIR
+-#BB_GENERATE_MIRROR_TARBALLS = "1"
++BB_GENERATE_MIRROR_TARBALLS = "1"
+ 
+ # Generate compressed "gitshallow_" gz of all git packages in DL_DIR
+-#BB_GENERATE_SHALLOW_TARBALLS = "1"
++BB_GENERATE_SHALLOW_TARBALLS = "1"
+ 
+ # Use "gitshallow_" instead of normal git files in DL_DIR
+-#BB_GIT_SHALLOW = "1"
+-#BB_GIT_SHALLOW_DEPTH = "1"
++BB_GIT_SHALLOW = "1"
++BB_GIT_SHALLOW_DEPTH = "1"
+ 
+ # Remove dnf package which causes high CPU workload
+ PACKAGE_INSTALL_remove = " dnf "
++
++DL_DIR = "${TOPDIR}/downloads"
++BB_NO_NETWORK = "0"
++

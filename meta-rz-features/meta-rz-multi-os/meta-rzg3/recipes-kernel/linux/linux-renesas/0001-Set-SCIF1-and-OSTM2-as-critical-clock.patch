@@ -1,0 +1,26 @@
+From ef8d0a49b961ea6bbbf3e03a29b039609138cafa Mon Sep 17 00:00:00 2001
+From: Trung Le <trung.le.uj@renesas.com>
+Date: Sun, 4 Jun 2023 10:34:47 +0700
+Subject: [PATCH 1/3] Set SCIF1 and OSTM2 as critical clock
+
+Signed-off-by: Trung Le <trung.le.uj@renesas.com>
+---
+ drivers/clk/renesas/r9a08g045-cpg.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/clk/renesas/r9a08g045-cpg.c b/drivers/clk/renesas/r9a08g045-cpg.c
+index e09e36ebd906..8b3a3c63b258 100644
+--- a/drivers/clk/renesas/r9a08g045-cpg.c
++++ b/drivers/clk/renesas/r9a08g045-cpg.c
+@@ -458,6 +458,8 @@ static const unsigned int r9a08g045_crit_mod_clks[] __initconst = {
+ 	MOD_CLK_BASE + R9A08G045_IA55_CLK,
+ 	MOD_CLK_BASE + R9A08G045_DMAC_ACLK,
+ 	MOD_CLK_BASE + R9A08G045_VBAT_BCLK,
++        MOD_CLK_BASE + R9A08G045_SCIF1_CLK_PCK,
++        MOD_CLK_BASE + R9A08G045_OSTM2_PCLK,
+ };
+ 
+ const struct rzg2l_cpg_info r9a08g045_cpg_info = {
+-- 
+2.25.1
+
